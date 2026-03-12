@@ -30,10 +30,13 @@ else
 fi
 
 echo "helm ns: ${HELM_NS} ${GITHUB_REF_NAME}"
-if [ -d DongTai ]; then
-  echo "Directory exists"
-else
-  git clone https://github.com/HXSecurity/DongTai.git
+WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$(pwd)}"
+CHART_PATH="${CHART_PATH-${WORKSPACE_ROOT}/deploy/kubernetes/helm}"
+REMOTE_VALUES_URL="${REMOTE_VALUES_URL-https://charts.dongtai.io/devops.yaml}"
+
+if [ ! -d "${CHART_PATH}" ]; then
+  echo "Helm chart path not found: ${CHART_PATH}" >&2
+  exit 1
 fi
 
 # 2023-9-20 11:55:20 helm有时候会出现锁竞争导致失败的情况，在这里加一个重试看看能不能改善这种情况
@@ -42,19 +45,33 @@ count=0
 while [ 0 -eq 0 ]; do
 
   echo "helm upgrade begin, retry count = ${count}"
+  echo "Using chart path: ${CHART_PATH}"
 
   # 执行helm操作，有可能会失败
-  helm upgrade --install huoxian --create-namespace -n iast-${HELM_NS} ./DongTai/deploy/kubernetes/helm/ \
-    --set sca.sca_token=${TOKEN_SCA} \
-    --set usb.usb_token=${TOKEN_SCA} \
-    --set mysql.port=${MYPORT} \
-    --set logstash="false" \
-    --set tag=${MAXVALUEQ}${GITHUB_REF_NAME}-latest \
-    --set build.${PROJECT}_number=iast-${GITHUB_RUN_NUMBER} \
-    --set develop.agentZip=${HELM_ZIP} \
-    --set Dongtai_url=https://iast-${HELM_NS}.huoxian.cn \
-    ${OPTIONS} \
-    --values https://charts.dongtai.io/devops.yaml
+  if [ -n "${REMOTE_VALUES_URL}" ]; then
+    helm upgrade --install huoxian --create-namespace -n iast-${HELM_NS} "${CHART_PATH}" \
+      --set sca.sca_token=${TOKEN_SCA} \
+      --set usb.usb_token=${TOKEN_SCA} \
+      --set mysql.port=${MYPORT} \
+      --set logstash="false" \
+      --set tag=${MAXVALUEQ}${GITHUB_REF_NAME}-latest \
+      --set build.${PROJECT}_number=iast-${GITHUB_RUN_NUMBER} \
+      --set develop.agentZip=${HELM_ZIP} \
+      --set Dongtai_url=https://iast-${HELM_NS}.huoxian.cn \
+      ${OPTIONS} \
+      --values "${REMOTE_VALUES_URL}"
+  else
+    helm upgrade --install huoxian --create-namespace -n iast-${HELM_NS} "${CHART_PATH}" \
+      --set sca.sca_token=${TOKEN_SCA} \
+      --set usb.usb_token=${TOKEN_SCA} \
+      --set mysql.port=${MYPORT} \
+      --set logstash="false" \
+      --set tag=${MAXVALUEQ}${GITHUB_REF_NAME}-latest \
+      --set build.${PROJECT}_number=iast-${GITHUB_RUN_NUMBER} \
+      --set develop.agentZip=${HELM_ZIP} \
+      --set Dongtai_url=https://iast-${HELM_NS}.huoxian.cn \
+      ${OPTIONS}
+  fi
 
   # 检查和重试过程
   if [ $? -eq 0 ]; then
