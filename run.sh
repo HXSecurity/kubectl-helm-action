@@ -33,7 +33,6 @@ echo "helm ns: ${HELM_NS} ${GITHUB_REF_NAME}"
 WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$(pwd)}"
 CHART_PATH="${CHART_PATH-${WORKSPACE_ROOT}/deploy/kubernetes/helm}"
 REMOTE_VALUES_URL="${REMOTE_VALUES_URL-https://charts.dongtai.io/devops.yaml}"
-IMAGE_TAG_VALUE="${IMAGE_TAG-${MAXVALUEQ}${GITHUB_REF_NAME}-latest}"
 
 if [ ! -d "${CHART_PATH}" ]; then
   echo "Helm chart path not found: ${CHART_PATH}" >&2
@@ -47,7 +46,6 @@ while [ 0 -eq 0 ]; do
 
   echo "helm upgrade begin, retry count = ${count}"
   echo "Using chart path: ${CHART_PATH}"
-  echo "Using image tag: ${IMAGE_TAG_VALUE}"
 
   # 执行helm操作，有可能会失败
   if [ -n "${REMOTE_VALUES_URL}" ]; then
@@ -56,7 +54,7 @@ while [ 0 -eq 0 ]; do
       --set usb.usb_token=${TOKEN_SCA} \
       --set mysql.port=${MYPORT} \
       --set logstash="false" \
-      --set-string tag=${IMAGE_TAG_VALUE} \
+      --set tag=${MAXVALUEQ}${GITHUB_REF_NAME}-latest \
       --set-string build.${PROJECT}_number=iast-${GITHUB_RUN_NUMBER} \
       --set develop.agentZip=${HELM_ZIP} \
       --set Dongtai_url=https://iast-${HELM_NS}.huoxian.cn \
@@ -68,7 +66,7 @@ while [ 0 -eq 0 ]; do
       --set usb.usb_token=${TOKEN_SCA} \
       --set mysql.port=${MYPORT} \
       --set logstash="false" \
-      --set-string tag=${IMAGE_TAG_VALUE} \
+      --set tag=${MAXVALUEQ}${GITHUB_REF_NAME}-latest \
       --set-string build.${PROJECT}_number=iast-${GITHUB_RUN_NUMBER} \
       --set develop.agentZip=${HELM_ZIP} \
       --set Dongtai_url=https://iast-${HELM_NS}.huoxian.cn \
